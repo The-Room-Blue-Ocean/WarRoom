@@ -40,7 +40,6 @@ export default function SignIn({
       <div className="formbox">
         <div className="button-box">
           <div className="formTitle">
-            {/* <img className="formLogo" src='./assets/logoflame.png'></img> */}
             <h2>War Room</h2>
             <img className="swordImage" src="./assets/sword.png" />
           </div>
