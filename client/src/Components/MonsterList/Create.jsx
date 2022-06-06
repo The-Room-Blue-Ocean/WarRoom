@@ -7,6 +7,8 @@ import { addUserMonster } from '../../firebase-config';
 import UserContext from '../UserContext';
 import CSS from './create/css';
 
+const axios = require('axios');
+
 // eslint-disable-next-line react/prop-types
 function Create({ setRender }) {
   const { currentUser } = useContext(UserContext);
@@ -65,6 +67,11 @@ function Create({ setRender }) {
     range: 5,
   }]);
   const [quantity, setQuantity] = useState(1);
+
+  const [modalClicked, setModalClicked] = useState(false);
+  const [dndBeyondURL, setdndBeyondURL] = useState('');
+  const [dndMonster, setdndMonster] = useState({});
+
   // access current user
   // renders all icons for user to click from
   const renderIcons = function renderIcons() {
@@ -151,15 +158,50 @@ function Create({ setRender }) {
       return Promise.all().then((data) => console.log(data)).catch((err) => console.log(err));
     }
   }
+
+  async function getDnDBeyond(url) {
+    setdndMonster({});
+    const result = await axios.get('/dnd', {
+      params: {
+        url,
+      },
+    });
+    // TODO: Mad buggy with wrong url. Pls do a correct url pls for now lol
+    setdndMonster(result.data);
+    setName(result.data.name);
+    setDescription(result.data.level);
+    setArmor(result.data.armor);
+    setHealth(result.data.health);
+    setMovement(result.data.movement);
+
+    for (let i = 0; i < result.data.actions.length; i += 1) {
+      attackArr[i].attackName = result.data.actions[i].name;
+      attackArr[i].damage = result.data.actions[i].damage;
+      attackArr[i].multiplier = parseInt(result.data.actions[i].strike, 10) || 1;
+      attackArr[i].attack = result.data.actions[i].attack || '1d20 + 6';
+      attackArr[i].range = result.data.actions[i].range || 5;
+      if (i !== result.data.actions.length - 1) {
+        addAttack();
+      }
+    }
+  }
+
   return (
     <CSS.CreateContainer>
       <div className="attribute">
         <h4>Name</h4>
-        <CSS.Input type="text" id="nickname" autocomplete="off" maxLength="60" placeholder="Ex: Skeleton" onChange={(e) => setName(e.target.value)} />
+        <CSS.CharIcon type="button" onClick={() => { setModalClicked(true); }}>DnDBeyond</CSS.CharIcon>
+        { modalClicked && (
+          <>
+            <CSS.Input type="text" id="url" placeholder="Enter URL" onChange={(e) => setdndBeyondURL(e.target.value)} />
+            <CSS.CharIcon type="button" onClick={() => { getDnDBeyond(dndBeyondURL); setdndBeyondURL(''); setModalClicked(false); }}>Submit</CSS.CharIcon>
+          </>
+        )}
+        <CSS.Input type="text" id="nickname" autocomplete="off" maxLength="60" placeholder="Ex: Skeleton" value={name || ''} onChange={(e) => setName(e.target.value)} />
       </div>
       <div className="attribute">
         <h4>Description</h4>
-        <CSS.Input type="text" id="Description" maxLength="1000" placeholder="Ex: Level 3 Fighter" onChange={(e) => setDescription(e.target.value)} />
+        <CSS.Input type="text" id="Description" maxLength="1000" placeholder="Ex: Level 3 Fighter" value={description || ''} onChange={(e) => setDescription(e.target.value)} />
       </div>
       <div className="attribute">
         <h4>Icon</h4>
@@ -180,15 +222,15 @@ function Create({ setRender }) {
       </div>
       <div className="attribute">
         <h4>Armor</h4>
-        <CSS.Input type="number" id="Armor" maxLength="60" placeholder="0" onChange={(e) => setArmor(e.target.value)} />
+        <CSS.Input type="number" id="Armor" maxLength="60" placeholder="0" value={armor || ''} onChange={(e) => setArmor(e.target.value)} />
       </div>
       <div className="attribute">
         <h4>Health</h4>
-        <CSS.Input type="number" id="Health" maxLength="60" placeholder="0" onChange={(e) => setHealth(e.target.value)} />
+        <CSS.Input type="number" id="Health" maxLength="60" placeholder="0" value={health || ''} onChange={(e) => setHealth(e.target.value)} />
       </div>
       <div className="attribute">
         <h4>Movement</h4>
-        <CSS.Input type="number" id="Movement" step="5" maxLength="60" placeholder="0" onChange={(e) => setMovement(e.target.value)} />
+        <CSS.Input type="number" id="Movement" step="5" maxLength="60" placeholder="0" value={movement || ''} onChange={(e) => setMovement(e.target.value)} />
       </div>
       <div className="attribute-attack">
         <h4>Attacks</h4>
@@ -202,6 +244,7 @@ function Create({ setRender }) {
                 deleteAttack={(index) => deleteAttack(index)}
                 addAttack={() => addAttack()}
                 count={count}
+                attackArr={attackArr[i]}
               />
             );
           })}
